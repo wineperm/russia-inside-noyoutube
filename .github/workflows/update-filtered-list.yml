@@ -2,36 +2,37 @@ name: Update filtered Russia list (no YouTube)
 
 on:
   schedule:
-    # Каждые 15 минут (минимальный интервал для бесплатных аккаунтов ~5-15 минут)
     - cron: '*/15 * * * *'
   push:
     branches:
       - main
     paths:
       - 'scripts/filter_and_check.sh'
-  workflow_dispatch:  # ручной запуск
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   update-list:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout репозитория
         uses: actions/checkout@v4
         with:
           persist-credentials: true
 
-      - name: Запуск скрипта фильтрации с проверкой изменений
+      - name: Запуск скрипта фильтрации
         run: |
           chmod +x scripts/filter_and_check.sh
           ./scripts/filter_and_check.sh
 
-      - name: Проверка, есть ли изменения для коммита
+      - name: Проверка изменений
         id: check_changes
         run: |
           git diff --quiet russia-inside-noyoutube.lst .last_checksums || echo "changed=true" >> $GITHUB_OUTPUT
 
-      - name: Коммит и пуш обновлений
+      - name: Коммит и пуш
         if: steps.check_changes.outputs.changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
