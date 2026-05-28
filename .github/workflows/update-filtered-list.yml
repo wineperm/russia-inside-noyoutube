@@ -2,14 +2,15 @@ name: Update filtered Russia list (no YouTube)
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '*/15 * * * *'          # каждые 15 минут
   push:
     branches:
       - main
     paths:
       - 'scripts/filter_and_check.sh'
-  workflow_dispatch:
+  workflow_dispatch:                 # ручной запуск
 
+# Разрешаем пуш обратно в репозиторий
 permissions:
   contents: write
 
@@ -18,20 +19,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      # Шаг 1: Клонируем репозиторий (используем последнюю стабильную версию checkout)
+      - name: Checkout репозитория
+        uses: actions/checkout@v6        # актуальная версия на 2026 год
 
-      - name: Run filter script
+      # Шаг 2: Запускаем скрипт фильтрации (он сам проверит хеши и создаст новый файл при необходимости)
+      - name: Запуск скрипта фильтрации
         run: |
           chmod +x scripts/filter_and_check.sh
           ./scripts/filter_and_check.sh
 
-      - name: Check for changes
+      # Шаг 3: Определяем, были ли реальные изменения в итоговом файле или в .last_checksums
+      - name: Проверка изменений
         id: changes
         run: |
           git diff --quiet russia-inside-noyoutube.lst .last_checksums || echo "changed=true" >> $GITHUB_OUTPUT
 
-      - name: Commit and push
+      # Шаг 4: Если изменения есть – коммитим и пушим
+      - name: Коммит и пуш
         if: steps.changes.outputs.changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
@@ -40,7 +45,8 @@ jobs:
           git commit -m "Автообновление: изменения в исходных списках [skip ci]"
           git push
 
-      - name: Notify via Telegram
+      # Шаг 5: Отправляем уведомление в Telegram (только если были изменения)
+      - name: Уведомление в Telegram
         if: steps.changes.outputs.changed == 'true'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
