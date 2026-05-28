@@ -2,16 +2,15 @@ name: Update filtered Russia list (no YouTube)
 
 on:
   schedule:
-    # Каждые 15 минут (можно изменить интервал)
+    # Каждые 15 минут
     - cron: '*/15 * * * *'
   push:
     branches:
       - main
     paths:
       - 'scripts/filter_and_check.sh'
-  workflow_dispatch:  # ручной запуск из интерфейса GitHub
+  workflow_dispatch:
 
-# Даём права на запись в репозиторий
 permissions:
   contents: write
 
@@ -25,17 +24,17 @@ jobs:
         with:
           persist-credentials: true
 
-      - name: Запуск скрипта фильтрации с проверкой изменений
+      - name: Запуск скрипта фильтрации
         run: |
           chmod +x scripts/filter_and_check.sh
           ./scripts/filter_and_check.sh
 
-      - name: Проверка, были ли изменения
+      - name: Проверка изменений
         id: changes
         run: |
           git diff --quiet russia-inside-noyoutube.lst .last_checksums || echo "changed=true" >> $GITHUB_OUTPUT
 
-      - name: Коммит и пуш обновлений
+      - name: Коммит и пуш
         if: steps.changes.outputs.changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
@@ -46,15 +45,13 @@ jobs:
 
       - name: Уведомление в Telegram
         if: steps.changes.outputs.changed == 'true'
-        uses: appleboy/telegram-action@v2
+        uses: appleboy/telegram-action@v1   
         with:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           message: |
             🔔 **Обновлён список доменов**
-            
-            📁 `russia-inside-noyoutube.lst` в репозитории ${{ github.repository }}
-            
-            🕒 Время: ${{ github.event.repository.updated_at }}
-            🔗 [Смотреть файл](https://github.com/${{ github.repository }}/blob/main/russia-inside-noyoutube.lst)
+
+            📁 `russia-inside-noyoutube.lst`
+            👤 ${{ github.actor }}
             📦 [Коммит](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
