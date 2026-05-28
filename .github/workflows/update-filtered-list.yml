@@ -40,16 +40,14 @@ jobs:
           git commit -m "Автообновление: изменения в исходных списках [skip ci]"
           git push
 
-      - name: Уведомление в Telegram
+      - name: Уведомление в Telegram (curl)
         if: steps.changes.outputs.changed == 'true'
-        uses: appleboy/telegram-action@v1.1.0   # 👈 исправленная версия
-        with:
-          to: ${{ secrets.TELEGRAM_CHAT_ID }}
-          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          message: |
-            🔔 **Обновлён список доменов**
-            
-            📁 `russia-inside-noyoutube.lst`
-            🕒 ${{ github.event.repository.updated_at }}
-            🔗 [Смотреть файл](https://github.com/${{ github.repository }}/blob/main/russia-inside-noyoutube.lst)
-            📦 [Коммит](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          MESSAGE="🔔 *Обновлён список доменов*%0A%0A📁 \`russia-inside-noyoutube.lst\`%0A🔗 [Смотреть файл](https://github.com/${{ github.repository }}/blob/main/russia-inside-noyoutube.lst)%0A📦 [Коммит](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
+          curl -s -X POST https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage \
+            -d chat_id=${TELEGRAM_CHAT_ID} \
+            -d parse_mode=Markdown \
+            -d text="${MESSAGE}"
