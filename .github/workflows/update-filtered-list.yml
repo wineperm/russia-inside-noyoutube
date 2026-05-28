@@ -2,41 +2,59 @@ name: Update filtered Russia list (no YouTube)
 
 on:
   schedule:
+    # Каждые 15 минут (можно изменить интервал)
     - cron: '*/15 * * * *'
   push:
     branches:
       - main
     paths:
       - 'scripts/filter_and_check.sh'
-  workflow_dispatch:
+  workflow_dispatch:  # ручной запуск из интерфейса GitHub
 
+# Даём права на запись в репозиторий
 permissions:
   contents: write
 
 jobs:
   update-list:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout репозитория
         uses: actions/checkout@v4
         with:
           persist-credentials: true
 
-      - name: Запуск скрипта фильтрации
+      - name: Запуск скрипта фильтрации с проверкой изменений
         run: |
           chmod +x scripts/filter_and_check.sh
           ./scripts/filter_and_check.sh
 
-      - name: Проверка изменений
-        id: check_changes
+      - name: Проверка, были ли изменения
+        id: changes
         run: |
           git diff --quiet russia-inside-noyoutube.lst .last_checksums || echo "changed=true" >> $GITHUB_OUTPUT
 
-      - name: Коммит и пуш
-        if: steps.check_changes.outputs.changed == 'true'
+      - name: Коммит и пуш обновлений
+        if: steps.changes.outputs.changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add russia-inside-noyoutube.lst .last_checksums
           git commit -m "Автообновление: изменения в исходных списках [skip ci]"
           git push
+
+      - name: Уведомление в Telegram
+        if: steps.changes.outputs.changed == 'true'
+        uses: appleboy/telegram-action@v2
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          message: |
+            🔔 **Обновлён список доменов**
+            
+            📁 `russia-inside-noyoutube.lst` в репозитории ${{ github.repository }}
+            
+            🕒 Время: ${{ github.event.repository.updated_at }}
+            🔗 [Смотреть файл](https://github.com/${{ github.repository }}/blob/main/russia-inside-noyoutube.lst)
+            📦 [Коммит](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
