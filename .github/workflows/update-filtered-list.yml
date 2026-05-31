@@ -43,10 +43,10 @@ jobs:
             exit 1
           fi
 
-      - name: Компиляция SRS из .lst (через JSON)
+      - name: Компиляция SRS из .lst (через JSON с версией)
         run: |
-          # Преобразуем текстовый список в JSON-массив доменов
-          echo '{"domains": [' > rules.json
+          # Формируем JSON с версией и списком доменов
+          echo '{"version": 1, "domains": [' > rules.json
           # Каждую строку оборачиваем в кавычки и разделяем запятыми
           sed 's/^/"/; s/$/"/' russia-inside-noyoutube.lst | paste -sd ',' >> rules.json
           echo ']}' >> rules.json
