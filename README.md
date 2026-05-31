@@ -46,18 +46,21 @@ https://raw.githubusercontent.com/wineperm/russia-inside-noyoutube/main/russia-i
 git clone https://github.com/wineperm/russia-inside-noyoutube.git
 cd russia-inside-noyoutube
 chmod +x scripts/filter_and_check.sh
-./scripts/filter_and_check.sh
+./scripts/filter_and_check.sh```
 
 После выполнения появится файл russia-inside-noyoutube.lst.
 
 🔔 Уведомления в Telegram
 При каждом реальном обновлении вы будете получать сообщение от бота @russia_filter_bot примерно такого содержания:
 
+```
 🔔 Обновлён список доменов
 
 📁 russia-inside-noyoutube.lst
 🔗 Смотреть файл
 📦 Коммит
+```
+
 
 🛠️ Настройка своего подобного репозитория (форк)
 Если вы хотите создать аналогичный фильтр для других списков (например, удалить другие сервисы или использовать другие источники):
