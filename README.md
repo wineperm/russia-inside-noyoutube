@@ -84,3 +84,7 @@ chmod +x scripts/filter_and_check.sh
     * TELEGRAM_CHAT_ID = ваш личный ID (можно узнать у @userinfobot)
 
 4. Убедитесь, что в .github/workflows/update-filtered-list.yml версия actions/checkout актуальна (сейчас @v6).
+5. Закоммитьте и запушите изменения — GitHub Actions начнёт работать автоматически.
+
+🙏 Благодарность
+Автору itdoginfo за отличные списки разрешённых доменов.
