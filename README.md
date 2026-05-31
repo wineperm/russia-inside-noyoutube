@@ -67,25 +67,20 @@ chmod +x scripts/filter_and_check.sh
 🛠️ Настройка своего подобного репозитория (форк)
 Если вы хотите создать аналогичный фильтр для других списков (например, удалить другие сервисы или использовать другие источники):
 
-Форкните этот репозиторий или создайте новый.
+1. Форкните этот репозиторий или создайте новый.
 
-В файле scripts/filter_and_check.sh измените переменные MAIN_URL и EXCLUDE_URL на нужные вам raw‑ссылки.
+2. В файле scripts/filter_and_check.sh измените переменные MAIN_URL и EXCLUDE_URL на нужные вам raw‑ссылки.
 
-(Опционально) Настройте уведомления в Telegram:
+3. (Опционально) Настройте уведомления в Telegram:
 
-Создайте бота через @BotFather.
+  - Создайте бота через @BotFather.
 
-Отправьте боту команду /start.
+  - Отправьте боту команду /start.
 
-В вашем форке перейдите в Settings → Secrets and variables → Actions и добавьте:
+  - В вашем форке перейдите в Settings → Secrets and variables → Actions и добавьте:
 
-TELEGRAM_BOT_TOKEN = токен вашего бота
+    * TELEGRAM_BOT_TOKEN = токен вашего бота
 
-TELEGRAM_CHAT_ID = ваш личный ID (можно узнать у @userinfobot)
+    * TELEGRAM_CHAT_ID = ваш личный ID (можно узнать у @userinfobot)
 
-Убедитесь, что в .github/workflows/update-filtered-list.yml версия actions/checkout актуальна (сейчас @v6).
-
-Закоммитьте и запушите изменения — GitHub Actions начнёт работать автоматически.
-
-🙏 Благодарность
-Автору itdoginfo за отличные списки разрешённых доменов.
+4. Убедитесь, что в .github/workflows/update-filtered-list.yml версия actions/checkout актуальна (сейчас @v6).
