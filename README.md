@@ -42,11 +42,13 @@ https://raw.githubusercontent.com/wineperm/russia-inside-noyoutube/main/russia-i
 
 Если вы хотите вручную обновить список у себя на компьютере:
 
-```bash
+```
+bash
 git clone https://github.com/wineperm/russia-inside-noyoutube.git
 cd russia-inside-noyoutube
 chmod +x scripts/filter_and_check.sh
-./scripts/filter_and_check.sh```
+./scripts/filter_and_check.sh
+```
 
 После выполнения появится файл russia-inside-noyoutube.lst.
 
