@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - name: Checkout репозитория
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       # Шаг 1: обновляем текстовый список, если изменились исходники
       - name: Запуск скрипта фильтрации (обновляет .lst при изменениях)
