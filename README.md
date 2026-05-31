@@ -10,6 +10,7 @@
 ## 🎯 Цель
 
 Исходные списки ([itdoginfo/allow-domains](https://github.com/itdoginfo/allow-domains)) часто обновляются. Вручную удалять домены YouTube из основного списка неудобно. Мы автоматизировали процесс:
+
 - каждый день проверяются изменения в исходных файлах (по MD5‑хешам);
 - если данные изменились — формируется новый отфильтрованный список;
 - результат коммитится обратно в репозиторий;
@@ -45,7 +46,7 @@ https://raw.githubusercontent.com/wineperm/russia-inside-noyoutube/main/russia-i
 git clone https://github.com/wineperm/russia-inside-noyoutube.git
 cd russia-inside-noyoutube
 chmod +x scripts/filter_and_check.sh
-./scripts/filter_and_check.sh```
+./scripts/filter_and_check.sh
 
 После выполнения появится файл russia-inside-noyoutube.lst.
 
