@@ -26,35 +26,37 @@ jobs:
           chmod +x scripts/filter_and_check.sh
           ./scripts/filter_and_check.sh
 
-      - name: Очистка и проверка .lst перед компиляцией SRS
+      - name: Очистка и проверка .lst
         run: |
           if [ -f russia-inside-noyoutube.lst ]; then
-            # Удаляем BOM, пустые строки, пробелы в начале/конце
             sed -i '1s/^\xEF\xBB\xBF//' russia-inside-noyoutube.lst 2>/dev/null || true
             sed -i '/^$/d' russia-inside-noyoutube.lst
             sed -i 's/^[ \t]*//; s/[ \t]*$//' russia-inside-noyoutube.lst
-            echo "Первые 10 строк после очистки:"
-            head -n 10 russia-inside-noyoutube.lst
-            echo "Количество непустых строк:"
-            grep -c '.' russia-inside-noyoutube.lst || echo "0"
+            echo "Первые 5 строк:"
+            head -n 5 russia-inside-noyoutube.lst
             if [ ! -s russia-inside-noyoutube.lst ]; then
-              echo "Ошибка: файл russia-inside-noyoutube.lst пуст после очистки"
+              echo "Ошибка: файл пуст"
               exit 1
             fi
           else
-            echo "Файл russia-inside-noyoutube.lst не найден"
+            echo "Файл не найден"
             exit 1
           fi
 
-      - name: Компиляция SRS из .lst (с типом domain)
+      - name: Компиляция SRS из .lst (через JSON)
         run: |
+          # Преобразуем текстовый список в JSON-массив доменов
+          echo '{"domains": [' > rules.json
+          # Каждую строку оборачиваем в кавычки и разделяем запятыми
+          sed 's/^/"/; s/$/"/' russia-inside-noyoutube.lst | paste -sd ',' >> rules.json
+          echo ']}' >> rules.json
+          # Компилируем rule-set
           docker run --rm -v $(pwd):/data ghcr.io/sagernet/sing-box:latest \
-            rule-set compile --type domain \
-            --output /data/russia-inside-noyoutube.srs \
-            /data/russia-inside-noyoutube.lst
-          echo "SRS успешно скомпилирован"
+            rule-set compile --output /data/russia-inside-noyoutube.srs /data/rules.json
+          rm rules.json
+          echo "SRS скомпилирован успешно"
 
-      - name: Проверка изменений (в .lst, .srs или .last_checksums)
+      - name: Проверка изменений
         id: changes
         run: |
           git diff --quiet russia-inside-noyoutube.lst .last_checksums russia-inside-noyoutube.srs || echo "changed=true" >> $GITHUB_OUTPUT
