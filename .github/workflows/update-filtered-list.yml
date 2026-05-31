@@ -21,7 +21,7 @@ jobs:
       - name: Checkout репозитория
         uses: actions/checkout@v4
 
-      - name: Запуск скрипта фильтрации (обновляет .lst при изменениях)
+      - name: Запуск скрипта фильтрации
         run: |
           chmod +x scripts/filter_and_check.sh
           ./scripts/filter_and_check.sh
@@ -43,18 +43,15 @@ jobs:
             exit 1
           fi
 
-      - name: Компиляция SRS из .lst (через JSON с версией)
+      - name: Компиляция SRS из .lst (JSON с version и domain)
         run: |
-          # Формируем JSON с версией и списком доменов
-          echo '{"version": 1, "domains": [' > rules.json
-          # Каждую строку оборачиваем в кавычки и разделяем запятыми
+          echo '{"version": 1, "domain": [' > rules.json
           sed 's/^/"/; s/$/"/' russia-inside-noyoutube.lst | paste -sd ',' >> rules.json
           echo ']}' >> rules.json
-          # Компилируем rule-set
           docker run --rm -v $(pwd):/data ghcr.io/sagernet/sing-box:latest \
             rule-set compile --output /data/russia-inside-noyoutube.srs /data/rules.json
           rm rules.json
-          echo "SRS скомпилирован успешно"
+          echo "SRS скомпилирован"
 
       - name: Проверка изменений
         id: changes
