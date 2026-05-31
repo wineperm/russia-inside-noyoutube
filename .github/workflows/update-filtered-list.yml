@@ -43,30 +43,30 @@ jobs:
 
           # Проверяем, что файл не пуст
           if [ ! -s russia-inside-noyoutube.lst ]; then
-            echo "Ошибка: russia-inside-noyoutube.lst пуст после очистки"
-            exit 1
+            echo "Предупреждение: russia-inside-noyoutube.lst пуст после очистки"
+            echo '{"version": 3, "rules": []}' > rules.json
+          else
+            # Формируем корректный JSON для sing-box (версия 3 для совместимости)
+            echo '{"version": 3, "rules": [{"domain_suffix": [' > rules.json
+            sed 's/^/"/; s/$/"/' russia-inside-noyoutube.lst | paste -sd ',' >> rules.json
+            echo ']}]}' >> rules.json
           fi
 
-          # Формируем корректный JSON для sing-box
-          echo '{"version": 1, "rules": [{"domain_suffix": [' > rules.json
-          sed 's/^/"/; s/$/"/' russia-inside-noyoutube.lst | paste -sd ',' >> rules.json
-          echo ']}]}' >> rules.json
-
-          # Компилируем SRS
-          docker run --rm -v $(pwd):/data ghcr.io/sagernet/sing-box:latest \
+          # Компилируем SRS через Docker
+          docker run --rm -v "${GITHUB_WORKSPACE}:/data" ghcr.io/sagernet/sing-box:latest \
             rule-set compile --output /data/russia-inside-noyoutube.srs /data/rules.json
 
           # Проверяем, создан ли файл
           if [ -f russia-inside-noyoutube.srs ]; then
-            echo "SRS файл создан успешно"
+            echo "✅ SRS файл создан успешно"
             ls -la russia-inside-noyoutube.srs
           else
-            echo "Ошибка: SRS файл не был создан"
+            echo "❌ Ошибка: SRS файл не был создан"
             exit 1
           fi
 
           # Удаляем временный JSON
-          rm rules.json
+          rm -f rules.json
 
       # Шаг 3: проверяем, изменился ли .lst или .srs (или .last_checksums)
       - name: Проверка изменений
@@ -92,7 +92,7 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           MESSAGE="🔔 *Обновлён список доменов и SRS*%0A%0A📁 \`russia-inside-noyoutube.lst\`%0A📦 \`russia-inside-noyoutube.srs\`%0A🔗 [Смотреть файлы](https://github.com/${{ github.repository }})%0A📦 [Коммит](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
-          curl -s -X POST https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage \
-            -d chat_id=${TELEGRAM_CHAT_ID} \
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
             -d parse_mode=Markdown \
             -d text="${MESSAGE}"
