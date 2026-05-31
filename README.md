@@ -1,90 +1,209 @@
-# 🇷🇺 Russia inside domain list (without YouTube)
+# 🇷🇺 Russia Inside NoYouTube — Rule Set для Podkop / sing-box
 
-[![GitHub Actions status](https://github.com/wineperm/russia-inside-noyoutube/actions/workflows/update-filtered-list.yml/badge.svg)](https://github.com/wineperm/russia-inside-noyoutube/actions/workflows/update-filtered-list.yml)
-[![Last commit](https://img.shields.io/github/last-commit/wineperm/russia-inside-noyoutube)](https://github.com/wineperm/russia-inside-noyoutube/commits/main)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/wineperm/russia-inside-noyoutube/update-filtered-list.yml?label=Auto%20Update&logo=github)](https://github.com/wineperm/russia-inside-noyoutube/actions)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Podkop Compatible](https://img.shields.io/badge/Podkop-✅-green)](https://podkop.app)
 
-**Автоматически обновляемый список разрешённых доменов для России, очищенный от всех доменов YouTube и связанных с ним сервисов.**
+Автоматически обновляемый список доменов российских сервисов **без YouTube**, скомпилированный в формат `.srs` для использования в **Podkop**, **sing-box** и других совместимых прокси-клиентах.
 
-Этот репозиторий предоставляет готовый к использованию файл `russia-inside-noyoutube.lst`, который всегда содержит актуальную версию списка `Russia/inside-raw.lst` из [itdoginfo/allow-domains](https://github.com/itdoginfo/allow-domains) **без** строк, перечисленных в `Services/youtube.lst`.
+---
 
-## 🎯 Цель
+## 📋 Описание
 
-Исходные списки ([itdoginfo/allow-domains](https://github.com/itdoginfo/allow-domains)) часто обновляются. Вручную удалять домены YouTube из основного списка неудобно. Мы автоматизировали процесс:
+Этот репозиторий ежедневно обновляет два файла:
 
-- каждый день проверяются изменения в исходных файлах (по MD5‑хешам);
-- если данные изменились — формируется новый отфильтрованный список;
-- результат коммитится обратно в репозиторий;
-- при успешном обновлении отправляется уведомление в Telegram.
+| Файл | Формат | Назначение |
+|------|--------|------------|
+| `russia-inside-noyoutube.lst` | Текстовый список доменов | Читаемый формат, ручная проверка |
+| `russia-inside-noyoutube.srs` | Бинарный Rule Set (Protobuf) | ⚡ Оптимальный для sing-box / Podkop |
 
-Так вы всегда имеете свежий список **без YouTube** с минимальной задержкой.
+### 🔗 Источники данных
+- **Основной список**: [`itdoginfo/allow-domains`](https://github.com/itdoginfo/allow-domains) — Россия, внутри
+- **Исключения**: домены `youtube.com`, `ytimg.com`, `googlevideo.com` и др.
 
-## 📥 Использование
+---
 
-Прямая ссылка на итоговый файл (для использования в прокси, блокировщиках, DNS‑фильтрах и т.д.):
+## 🚀 Быстрое подключение в Podkop
+
+### Вариант 1: Бинарный SRS (рекомендуется)
+```
+https://raw.githubusercontent.com/wineperm/russia-inside-noyoutube/main/russia-inside-noyoutube.srs
+```
+
+### Вариант 2: Текстовый список
+```
 https://raw.githubusercontent.com/wineperm/russia-inside-noyoutube/main/russia-inside-noyoutube.lst
+```
 
-Можете также просматривать файл прямо в репозитории: [russia-inside-noyoutube.lst](russia-inside-noyoutube.lst).
+### Настройки в Podkop:
+1. Перейдите в секцию **Внешние списки доменов**
+2. Нажмите **«Добавить список»**
+3. Вставьте одну из ссылок выше
+4. Тип правила: **Domain Suffix** (по умолчанию)
+5. Сохраните и примените конфигурацию
 
-## ⚙️ Как это работает (внутреннее устройство)
+> 💡 **Совет**: Используйте `.srs` — он обрабатывается быстрее и занимает меньше места.
 
-- **Исходные данные**  
-  `MAIN_LIST` = `https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Russia/inside-raw.lst`  
-  `EXCLUDE_LIST` = `https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Services/youtube.lst`
+---
 
-- **Механизм**  
-  - GitHub Actions запускается по расписанию (`cron: '0 3 * * *'`) или вручную.
-  - Скрипт `scripts/filter_and_check.sh` скачивает оба списка, вычисляет MD5 и сравнивает с предыдущими значениями (хранятся в `.last_checksums`).
-  - Если хеши совпадают — процесс завершается без коммита.
-  - Если хеши различаются — из основного списка удаляются строки, присутствующие в списке исключений (команда `grep -vxFf`), результат записывается в `russia-inside-noyoutube.lst`, обновляется `.last_checksums`, изменения пушатся в репозиторий.
-  - После успешного пуша отправляется уведомление в Telegram (через `curl` без сторонних действий).
-
-## 🧪 Локальный запуск (для отладки)
-
-Если вы хотите вручную обновить список у себя на компьютере:
+## 📁 Структура репозитория
 
 ```
-bash
+📦 russia-inside-noyoutube
+├── 📄 README.md                 # Этот файл
+├── 📄 .gitignore               # Исключения для git
+├── 📁 .github/
+│   └── 📁 workflows/
+│       └── 📄 update-filtered-list.yml  # GitHub Actions workflow
+├── 📁 scripts/
+│   └── 📄 filter_and_check.sh  # Скрипт фильтрации доменов
+├── 📄 russia-inside-noyoutube.lst   # ✅ Текстовый список (автогенерация)
+├── 📄 russia-inside-noyoutube.srs   # ✅ Бинарный SRS (автогенерация)
+└── 📄 .last_checksums          # Хеш-суммы для отслеживания изменений
+```
+
+---
+
+## ⚙️ Как это работает
+
+### 🔁 Автоматическое обновление
+1. **Ежедневно в 03:00 UTC** запускается GitHub Actions
+2. Скрипт скачивает актуальные списки с `itdoginfo/allow-domains`
+3. Исключает все домены, связанные с YouTube
+4. Очищает и нормализует список
+5. Компилирует `.lst` → `.srs` через `sing-box rule-set compile`
+6. Если есть изменения — пушит в репозиторий и отправляет уведомление в Telegram
+
+### 🔄 Триггеры запуска
+```yaml
+on:
+  schedule:
+    - cron: '0 3 * * *'        # Ежедневно в 3:00 UTC
+  push:
+    branches: [main]
+    paths: ['scripts/filter_and_check.sh']  # При изменении скрипта
+  workflow_dispatch:           # Ручной запуск через интерфейс GitHub
+```
+
+---
+
+## 🛠️ Развёртывание своей копии
+
+### 1. Форкните репозиторий
+Нажмите **Fork** в правом верхнем углу GitHub.
+
+### 2. Настройте секреты (для Telegram-уведомлений)
+Перейдите в **Settings → Secrets and variables → Actions** и добавьте:
+
+| Secret | Описание |
+|--------|----------|
+| `TELEGRAM_BOT_TOKEN` | Токен бота от [@BotFather](https://t.me/BotFather) |
+| `TELEGRAM_CHAT_ID` | ID чата для уведомлений (узнать через [@getidsbot](https://t.me/getidsbot)) |
+
+> ⚠️ Уведомления в Telegram — опционально. Если не настроите, воркфлоу будет работать без них.
+
+### 3. Запустите первое обновление вручную
+1. Перейдите во вкладку **Actions**
+2. Выберите воркфлоу **Update filtered Russia list**
+3. Нажмите **Run workflow** → **Run workflow**
+
+### 4. Готово! 🎉
+Файлы `.lst` и `.srs` появятся в репозитории после успешного выполнения.
+
+---
+
+## 🔧 Локальное тестирование
+
+```bash
+# 1. Клонируйте репозиторий
 git clone https://github.com/wineperm/russia-inside-noyoutube.git
 cd russia-inside-noyoutube
+
+# 2. Сделайте скрипт исполняемым
 chmod +x scripts/filter_and_check.sh
+
+# 3. Запустите фильтрацию
 ./scripts/filter_and_check.sh
+
+# 4. Проверьте результат
+ls -la *.lst *.srs .last_checksums
+head -10 russia-inside-noyoutube.lst
+
+# 5. (Опционально) Протестируйте компиляцию SRS локально
+echo '{"version": 3, "rules": [{"domain_suffix": ["example.com"]}]}' > rules.json
+docker run --rm -v "$(pwd):/data" ghcr.io/sagernet/sing-box:latest \
+  rule-set compile --output /data/test.srs /data/rules.json
+rm rules.json test.srs
 ```
 
-После выполнения появится файл russia-inside-noyoutube.lst.
+---
 
-🔔 Уведомления в Telegram
-При каждом реальном обновлении вы будете получать сообщение от бота @russia_filter_bot примерно такого содержания:
+## ❓ FAQ
 
+### Почему файл `.srs` выглядит как "кракозябры"?
+Это **нормально**. Файлы `.srs` используют бинарный формат Protobuf для максимальной производительности. Не пытайтесь читать их в текстовом редакторе — используйте `.lst` для просмотра содержимого.
+
+### Как добавить свои исключения?
+Отредактируйте `scripts/filter_and_check.sh` и добавьте нужные домены в массив исключений, либо создайте свой файл со списком исключений и подключите его через `grep -vxFf`.
+
+### Можно ли исключить другие сервисы?
+Да! Добавьте ещё один `EXCLUDE_URL` в скрипт:
+```bash
+EXCLUDE_URL2="https://example.com/exclude-list.txt"
+curl -fsSL "$EXCLUDE_URL2" -o "$TEMP_EXCLUDE2"
+grep -vxFf "$TEMP_EXCLUDE" "$TEMP_MAIN" | grep -vxFf "$TEMP_EXCLUDE2" > "$OUTPUT_LST"
 ```
-🔔 Обновлён список доменов
 
-📁 russia-inside-noyoutube.lst
-🔗 Смотреть файл
-📦 Коммит
+### Почему не обновляется список?
+1. Проверьте вкладку **Actions** — нет ли ошибок в логах
+2. Убедитесь, что исходные списки `itdoginfo` изменились (скрипт сравнивает MD5-хеши)
+3. Проверьте, что файлы не добавлены в `.gitignore`
+
+### Можно ли использовать в других клиентах?
+- ✅ **Podkop** — полная поддержка `.srs` и `.lst`
+- ✅ **sing-box** — нативная поддержка `.srs`
+- ✅ **Clash Meta / Mihomo** — поддержка через `rule-providers`
+- ⚠️ **Qv2ray / V2Ray** — только текстовый `.lst`, требуется конвертация
+
+---
+
+## 🤝 Вклад в проект
+
+Предложения по улучшению приветствуются! 🙌
+
+1. Создайте форк репозитория
+2. Создайте ветку для вашей фичи: `git checkout -b feature/amazing-feature`
+3. Внесите изменения и закоммитьте: `git commit -m 'Add: amazing feature'`
+4. Отправьте в свой форк: `git push origin feature/amazing-feature`
+5. Откройте **Pull Request**
+
+---
+
+## 📜 Лицензия
+
+Проект распространяется под лицензией **MIT**. См. файл [LICENSE](LICENSE) для деталей.
+
+Исходные данные взяты из репозитория [`itdoginfo/allow-domains`](https://github.com/itdoginfo/allow-domains) (лицензия автора).
+
+---
+
+## ⚠️ Отказ от ответственности
+
+> Этот проект предоставляется «как есть», без каких-либо гарантий. Автор не несёт ответственности за возможные проблемы при использовании списков. Проверяйте конфигурации перед применением в продакшене.
+
+---
+
+## 📬 Контакты
+
+- 💬 [Обсуждение в Telegram](https://t.me/your_channel) *(опционально)*
+- 🐛 [Сообщить об ошибке](https://github.com/wineperm/russia-inside-noyoutube/issues)
+- 💡 [Предложить улучшение](https://github.com/wineperm/russia-inside-noyoutube/discussions)
+
+---
+
+> ⭐ **Понравился проект?** Поставьте звезду — это помогает другим найти репозиторий!
+
+```yaml
+# Поддержка проекта
+# Если этот репозиторий оказался полезным — поделитесь ссылкой с друзьями! 🙏
 ```
-
-
-🛠️ Настройка своего подобного репозитория (форк)
-Если вы хотите создать аналогичный фильтр для других списков (например, удалить другие сервисы или использовать другие источники):
-
-1. Форкните этот репозиторий или создайте новый.
-
-2. В файле scripts/filter_and_check.sh измените переменные MAIN_URL и EXCLUDE_URL на нужные вам raw‑ссылки.
-
-3. (Опционально) Настройте уведомления в Telegram:
-
-  - Создайте бота через @BotFather.
-
-  - Отправьте боту команду /start.
-
-  - В вашем форке перейдите в Settings → Secrets and variables → Actions и добавьте:
-
-    * TELEGRAM_BOT_TOKEN = токен вашего бота
-
-    * TELEGRAM_CHAT_ID = ваш личный ID (можно узнать у @userinfobot)
-
-4. Убедитесь, что в .github/workflows/update-filtered-list.yml версия actions/checkout актуальна (сейчас @v6).
-5. Закоммитьте и запушите изменения — GitHub Actions начнёт работать автоматически.
-
-🙏 Благодарность
-Автору itdoginfo за отличные списки разрешённых доменов.
