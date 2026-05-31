@@ -43,11 +43,13 @@ jobs:
             exit 1
           fi
 
-      - name: Компиляция SRS из .lst (JSON с version и domain)
+      - name: Компиляция SRS из .lst (JSON с rules)
         run: |
-          echo '{"version": 1, "domain": [' > rules.json
+          echo '{"version": 1, "rules": [{"domain": [' > rules.json
           sed 's/^/"/; s/$/"/' russia-inside-noyoutube.lst | paste -sd ',' >> rules.json
-          echo ']}' >> rules.json
+          echo ']}]}' >> rules.json
+          echo "Проверка JSON (первые 200 символов):"
+          head -c 200 rules.json
           docker run --rm -v $(pwd):/data ghcr.io/sagernet/sing-box:latest \
             rule-set compile --output /data/russia-inside-noyoutube.srs /data/rules.json
           rm rules.json
