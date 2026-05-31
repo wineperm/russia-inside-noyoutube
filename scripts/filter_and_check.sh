@@ -1,18 +1,18 @@
 #!/bin/bash
 
-# URLs исходных файлов (обновлено на itdoginfo/allow-domains)
+# URL исходных файлов (репозиторий itdoginfo)
 MAIN_URL="https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Russia/inside-raw.lst"
 EXCLUDE_URL="https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Services/youtube.lst"
 
-OUTPUT_FILE="russia-inside-noyoutube.lst"
+OUTPUT_LST="russia-inside-noyoutube.lst"
 CHECKSUM_FILE=".last_checksums"
 
-# Функция вычисления MD5-хеша файла
+# Функция MD5
 md5_hash() {
     md5sum "$1" | cut -d' ' -f1
 }
 
-# Скачиваем текущие версии во временные файлы
+# Временные файлы
 TEMP_MAIN=$(mktemp)
 TEMP_EXCLUDE=$(mktemp)
 
@@ -21,11 +21,9 @@ curl -fsSL "$MAIN_URL" -o "$TEMP_MAIN" || { echo "Ошибка загрузки 
 echo "Загрузка списка исключений (YouTube)..."
 curl -fsSL "$EXCLUDE_URL" -o "$TEMP_EXCLUDE" || { echo "Ошибка загрузки списка исключений"; exit 1; }
 
-# Хеши новых файлов
 NEW_MAIN_HASH=$(md5_hash "$TEMP_MAIN")
 NEW_EXCLUDE_HASH=$(md5_hash "$TEMP_EXCLUDE")
 
-# Чтение старых хешей
 if [ -f "$CHECKSUM_FILE" ]; then
     read -r OLD_MAIN_HASH OLD_EXCLUDE_HASH < "$CHECKSUM_FILE"
 else
@@ -33,27 +31,22 @@ else
     OLD_EXCLUDE_HASH=""
 fi
 
-# Сравнение
 if [ "$NEW_MAIN_HASH" = "$OLD_MAIN_HASH" ] && [ "$NEW_EXCLUDE_HASH" = "$OLD_EXCLUDE_HASH" ]; then
-    echo "Исходные файлы не изменились. Выход без обновления."
+    echo "Исходные файлы не изменились. Выход."
     rm "$TEMP_MAIN" "$TEMP_EXCLUDE"
     exit 0
 fi
 
-echo "Обнаружены изменения. Формируем новый фильтрованный список..."
+echo "Обнаружены изменения. Формируем новый список..."
 
-# Удаляем строки, присутствующие в списке исключений (полное совпадение)
-grep -vxFf "$TEMP_EXCLUDE" "$TEMP_MAIN" > "$OUTPUT_FILE"
+grep -vxFf "$TEMP_EXCLUDE" "$TEMP_MAIN" > "$OUTPUT_LST"
 
-# Проверка на пустоту
-if [ ! -s "$OUTPUT_FILE" ]; then
-    echo "Предупреждение: итоговый файл пуст. Возможно, основной список пуст или полностью состоит из исключений."
+if [ ! -s "$OUTPUT_LST" ]; then
+    echo "Предупреждение: итоговый файл пуст."
 fi
 
-# Сохраняем новые хеши
 echo "$NEW_MAIN_HASH $NEW_EXCLUDE_HASH" > "$CHECKSUM_FILE"
 
-# Очистка временных файлов
 rm "$TEMP_MAIN" "$TEMP_EXCLUDE"
 
-echo "Готово. Результат сохранён в $OUTPUT_FILE"
+echo "Список сохранён в $OUTPUT_LST"
