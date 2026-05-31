@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# URLs исходных файлов (raw-версии)
-MAIN_URL="https://raw.githubusercontent.com/aezakmi8/podkop-allow-domains/main/Russia/inside-raw.lst"
-EXCLUDE_URL="https://raw.githubusercontent.com/aezakmi8/podkop-allow-domains/main/Services/youtube.lst"
+# URLs исходных файлов (обновлено на itdoginfo/allow-domains)
+MAIN_URL="https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Russia/inside-raw.lst"
+EXCLUDE_URL="https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Services/youtube.lst"
 
 OUTPUT_FILE="russia-inside-noyoutube.lst"
 CHECKSUM_FILE=".last_checksums"
