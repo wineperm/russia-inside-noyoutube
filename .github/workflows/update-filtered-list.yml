@@ -2,7 +2,7 @@ name: Update filtered Russia list (no YouTube) + SRS
 
 on:
   schedule:
-    - cron: '0 3 * * *'          # каждый день в 3:00 UTC
+    - cron: '0 3 * * *'
   push:
     branches:
       - main
@@ -26,14 +26,28 @@ jobs:
           chmod +x scripts/filter_and_check.sh
           ./scripts/filter_and_check.sh
 
-      - name: Компиляция SRS из .lst (всегда, если файл существует)
+      - name: Очистка и проверка .lst перед компиляцией SRS
         run: |
           if [ -f russia-inside-noyoutube.lst ]; then
-            docker run --rm -v $(pwd):/data ghcr.io/sagernet/sing-box:latest rule-set compile --output /data/russia-inside-noyoutube.srs /data/russia-inside-noyoutube.lst
-            echo "SRS скомпилирован"
+            # Удаляем пустые строки, пробелы в начале/конце, BOM
+            sed -i '1s/^\xEF\xBB\xBF//' russia-inside-noyoutube.lst 2>/dev/null || true
+            sed -i '/^$/d' russia-inside-noyoutube.lst
+            sed -i 's/^[ \t]*//; s/[ \t]*$//' russia-inside-noyoutube.lst
+            echo "Первые 5 строк после очистки:"
+            head -n 5 russia-inside-noyoutube.lst
+            if [ ! -s russia-inside-noyoutube.lst ]; then
+              echo "Ошибка: файл russia-inside-noyoutube.lst пуст после очистки"
+              exit 1
+            fi
           else
-            echo "Файл russia-inside-noyoutube.lst не найден, компиляция SRS пропущена"
+            echo "Файл russia-inside-noyoutube.lst не найден"
+            exit 1
           fi
+
+      - name: Компиляция SRS из .lst
+        run: |
+          docker run --rm -v $(pwd):/data ghcr.io/sagernet/sing-box:latest rule-set compile --output /data/russia-inside-noyoutube.srs /data/russia-inside-noyoutube.lst
+          echo "SRS скомпилирован"
 
       - name: Проверка изменений (в .lst, .srs или .last_checksums)
         id: changes
