@@ -3,6 +3,7 @@
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/wineperm/russia-inside-noyoutube/update-filtered-list.yml?label=Auto%20Update&logo=github)](https://github.com/wineperm/russia-inside-noyoutube/actions)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Podkop Compatible](https://img.shields.io/badge/Podkop-✅-green)](https://podkop.app)
+[![Update Status](https://github.com/wineperm/russia-inside-noyoutube/actions/workflows/update-filtered-list.yml/badge.svg)](https://github.com/wineperm/russia-inside-noyoutube/actions)
 
 Автоматически обновляемый список доменов российских сервисов **без YouTube**, скомпилированный в формат `.srs` для использования в **Podkop**, **sing-box** и других совместимых прокси-клиентах.
 
