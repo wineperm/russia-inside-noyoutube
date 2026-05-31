@@ -1,8 +1,8 @@
-name: Update filtered Russia list (no YouTube)
+name: Update filtered Russia list (no YouTube) + SRS
 
 on:
   schedule:
-    - cron: '0 3 * * *'          # Каждый день в 3:00 UTC
+    - cron: '0 3 * * *'          # каждый день в 3:00 UTC
   push:
     branches:
       - main
@@ -21,23 +21,28 @@ jobs:
       - name: Checkout репозитория
         uses: actions/checkout@v4
 
-      - name: Запуск скрипта фильтрации
+      - name: Запуск скрипта фильтрации (генерирует .lst и проверяет изменения)
         run: |
           chmod +x scripts/filter_and_check.sh
           ./scripts/filter_and_check.sh
 
-      - name: Проверка изменений
+      - name: Проверка изменений (был ли создан новый .lst?)
         id: changes
         run: |
           git diff --quiet russia-inside-noyoutube.lst .last_checksums || echo "changed=true" >> $GITHUB_OUTPUT
 
-      - name: Коммит и пуш
+      - name: Компиляция SRS (если были изменения)
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          docker run --rm -v $(pwd):/data ghcr.io/sagernet/sing-box:latest rule-set compile --output /data/russia-inside-noyoutube.srs /data/russia-inside-noyoutube.lst
+
+      - name: Коммит и пуш (.lst, .srs, .last_checksums)
         if: steps.changes.outputs.changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add russia-inside-noyoutube.lst .last_checksums
-          git commit -m "Автообновление: изменения в исходных списках [skip ci]"
+          git add russia-inside-noyoutube.lst russia-inside-noyoutube.srs .last_checksums
+          git commit -m "Автообновление: изменения в исходных списках + SRS [skip ci]"
           git push
 
       - name: Уведомление в Telegram
@@ -46,7 +51,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          MESSAGE="🔔 *Обновлён список доменов*%0A%0A📁 \`russia-inside-noyoutube.lst\`%0A🔗 [Смотреть файл](https://github.com/${{ github.repository }}/blob/main/russia-inside-noyoutube.lst)%0A📦 [Коммит](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
+          MESSAGE="🔔 *Обновлён список доменов и SRS*%0A%0A📁 \`russia-inside-noyoutube.lst\`%0A📦 \`russia-inside-noyoutube.srs\`%0A🔗 [Смотреть файлы](https://github.com/${{ github.repository }})%0A📦 [Коммит](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
           curl -s -X POST https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage \
             -d chat_id=${TELEGRAM_CHAT_ID} \
             -d parse_mode=Markdown \
