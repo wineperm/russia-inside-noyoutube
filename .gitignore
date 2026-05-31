@@ -1,12 +1,10 @@
-# Временные файлы
-*.tmp
-*.temp
+# Игнорируем всё, кроме наших артефактов
+!russia-inside-noyoutube.lst
+!russia-inside-noyoutube.srs
+!.last_checksums
 
-# Файлы, создаваемые скриптом (их не нужно игнорировать, они нужны в репозитории)
-# но если хотите исключить локальные копии - раскомментируйте:
-# .last_checksums
-# russia-inside-noyoutube.lst
-
-# Системные файлы
+# Стандартные исключения
+node_modules/
+__pycache__/
+*.log
 .DS_Store
-Thumbs.db
