@@ -21,28 +21,32 @@ jobs:
       - name: Checkout репозитория
         uses: actions/checkout@v4
 
-      - name: Запуск скрипта фильтрации (генерирует .lst и проверяет изменения)
+      - name: Запуск скрипта фильтрации (обновляет .lst при изменениях)
         run: |
           chmod +x scripts/filter_and_check.sh
           ./scripts/filter_and_check.sh
 
-      - name: Проверка изменений (был ли создан новый .lst?)
+      - name: Компиляция SRS из .lst (всегда, если файл существует)
+        run: |
+          if [ -f russia-inside-noyoutube.lst ]; then
+            docker run --rm -v $(pwd):/data ghcr.io/sagernet/sing-box:latest rule-set compile --output /data/russia-inside-noyoutube.srs /data/russia-inside-noyoutube.lst
+            echo "SRS скомпилирован"
+          else
+            echo "Файл russia-inside-noyoutube.lst не найден, компиляция SRS пропущена"
+          fi
+
+      - name: Проверка изменений (в .lst, .srs или .last_checksums)
         id: changes
         run: |
-          git diff --quiet russia-inside-noyoutube.lst .last_checksums || echo "changed=true" >> $GITHUB_OUTPUT
+          git diff --quiet russia-inside-noyoutube.lst .last_checksums russia-inside-noyoutube.srs || echo "changed=true" >> $GITHUB_OUTPUT
 
-      - name: Компиляция SRS (если были изменения)
-        if: steps.changes.outputs.changed == 'true'
-        run: |
-          docker run --rm -v $(pwd):/data ghcr.io/sagernet/sing-box:latest rule-set compile --output /data/russia-inside-noyoutube.srs /data/russia-inside-noyoutube.lst
-
-      - name: Коммит и пуш (.lst, .srs, .last_checksums)
+      - name: Коммит и пуш
         if: steps.changes.outputs.changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add russia-inside-noyoutube.lst russia-inside-noyoutube.srs .last_checksums
-          git commit -m "Автообновление: изменения в исходных списках + SRS [skip ci]"
+          git commit -m "Автообновление: изменения в списках и SRS [skip ci]"
           git push
 
       - name: Уведомление в Telegram
