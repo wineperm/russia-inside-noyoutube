@@ -8,6 +8,7 @@ on:
       - main
     paths:
       - 'scripts/filter_and_check.sh'
+      - 'russia-inside-noyoutube.lst'   # <-- добавлен триггер при изменении .lst
   workflow_dispatch:
 
 permissions:
@@ -21,8 +22,40 @@ jobs:
       - name: Checkout репозитория
         uses: actions/checkout@v6
 
-      # Шаг 1: обновляем текстовый список, если изменились исходники
+      # Шаг 0: определяем, какие файлы изменились в текущем push-коммите
+      - name: Определение изменённых файлов
+        id: file_changes
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            # Сравниваем с предыдущим коммитом
+            changed_files=$(git diff --name-only HEAD^ HEAD)
+            echo "Изменённые файлы: $changed_files"
+            if echo "$changed_files" | grep -q "scripts/filter_and_check.sh"; then
+              echo "filter_changed=true" >> $GITHUB_OUTPUT
+            else
+              echo "filter_changed=false" >> $GITHUB_OUTPUT
+            fi
+            if echo "$changed_files" | grep -q "russia-inside-noyoutube.lst"; then
+              echo "lst_changed=true" >> $GITHUB_OUTPUT
+            else
+              echo "lst_changed=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            # Для расписания и ручного запуска считаем, что скрипт не менялся, а .lst не менялся (это не важно)
+            echo "filter_changed=false" >> $GITHUB_OUTPUT
+            echo "lst_changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      # Шаг 1: обновляем текстовый список, если это не ручное изменение только .lst
       - name: Запуск скрипта фильтрации (обновляет .lst при изменениях)
+        # Выполняем, если:
+        # - это не push (расписание или dispatch) ИЛИ
+        # - изменился сам скрипт filter_and_check.sh ИЛИ
+        # - .lst не был изменён в этом push-коммите
+        if: |
+          github.event_name != 'push' ||
+          steps.file_changes.outputs.filter_changed == 'true' ||
+          steps.file_changes.outputs.lst_changed == 'false'
         run: |
           chmod +x scripts/filter_and_check.sh
           ./scripts/filter_and_check.sh
@@ -46,7 +79,7 @@ jobs:
             echo "Предупреждение: russia-inside-noyoutube.lst пуст после очистки"
             echo '{"version": 3, "rules": []}' > rules.json
           else
-            # Формируем корректный JSON для sing-box (версия 3 для совместимости)
+            # Формируем корректный JSON для sing-box
             echo '{"version": 3, "rules": [{"domain_suffix": [' > rules.json
             sed 's/^/"/; s/$/"/' russia-inside-noyoutube.lst | paste -sd ',' >> rules.json
             echo ']}]}' >> rules.json
