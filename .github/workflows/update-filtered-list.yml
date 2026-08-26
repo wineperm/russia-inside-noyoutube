@@ -2,13 +2,13 @@ name: Update filtered Russia list (no YouTube) + SRS
 
 on:
   schedule:
-    - cron: '0 3 * * *'          # каждый день в 3:00 UTC
+    - cron: '0 3 * * *'          # ежедневно в 3:00 UTC
   push:
     branches:
       - main
     paths:
       - 'scripts/filter_and_check.sh'
-      - 'russia-inside-noyoutube.lst'   # <-- добавлен триггер при изменении .lst
+      - 'russia-inside-noyoutube.lst'   # триггер при ручном изменении .lst
   workflow_dispatch:
 
 permissions:
@@ -22,13 +22,18 @@ jobs:
       - name: Checkout репозитория
         uses: actions/checkout@v6
 
-      # Шаг 0: определяем, какие файлы изменились в текущем push-коммите
+      # --- Определяем, какие файлы изменились в push-коммите ---
       - name: Определение изменённых файлов
         id: file_changes
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
-            # Сравниваем с предыдущим коммитом
-            changed_files=$(git diff --name-only HEAD^ HEAD)
+            # Проверяем, существует ли предыдущий коммит
+            if git rev-parse --verify HEAD^ >/dev/null 2>&1; then
+              changed_files=$(git diff --name-only HEAD^ HEAD)
+            else
+              # Первый коммит в ветке – считаем все файлы новыми
+              changed_files=$(git diff-tree --no-commit-id --name-only -r ${{ github.sha }})
+            fi
             echo "Изменённые файлы: $changed_files"
             if echo "$changed_files" | grep -q "scripts/filter_and_check.sh"; then
               echo "filter_changed=true" >> $GITHUB_OUTPUT
@@ -41,17 +46,13 @@ jobs:
               echo "lst_changed=false" >> $GITHUB_OUTPUT
             fi
           else
-            # Для расписания и ручного запуска считаем, что скрипт не менялся, а .lst не менялся (это не важно)
+            # Для расписания и ручного запуска фильтрация всегда нужна
             echo "filter_changed=false" >> $GITHUB_OUTPUT
             echo "lst_changed=false" >> $GITHUB_OUTPUT
           fi
 
-      # Шаг 1: обновляем текстовый список, если это не ручное изменение только .lst
+      # --- Запуск фильтрации (если не было ручного изменения только .lst) ---
       - name: Запуск скрипта фильтрации (обновляет .lst при изменениях)
-        # Выполняем, если:
-        # - это не push (расписание или dispatch) ИЛИ
-        # - изменился сам скрипт filter_and_check.sh ИЛИ
-        # - .lst не был изменён в этом push-коммите
         if: |
           github.event_name != 'push' ||
           steps.file_changes.outputs.filter_changed == 'true' ||
@@ -60,36 +61,30 @@ jobs:
           chmod +x scripts/filter_and_check.sh
           ./scripts/filter_and_check.sh
 
-      # Шаг 2: всегда чистим .lst и компилируем .srs (даже если .lst не изменился)
+      # --- Всегда чистим .lst и компилируем SRS ---
       - name: Очистка .lst и компиляция SRS
         run: |
-          # Если файла .lst нет, выходим с ошибкой
           if [ ! -f russia-inside-noyoutube.lst ]; then
             echo "Ошибка: russia-inside-noyoutube.lst не найден"
             exit 1
           fi
-
           # Удаляем BOM, пустые строки, пробелы
           sed -i '1s/^\xEF\xBB\xBF//' russia-inside-noyoutube.lst 2>/dev/null || true
           sed -i '/^$/d' russia-inside-noyoutube.lst
           sed -i 's/^[ \t]*//; s/[ \t]*$//' russia-inside-noyoutube.lst
 
-          # Проверяем, что файл не пуст
           if [ ! -s russia-inside-noyoutube.lst ]; then
             echo "Предупреждение: russia-inside-noyoutube.lst пуст после очистки"
             echo '{"version": 3, "rules": []}' > rules.json
           else
-            # Формируем корректный JSON для sing-box
             echo '{"version": 3, "rules": [{"domain_suffix": [' > rules.json
             sed 's/^/"/; s/$/"/' russia-inside-noyoutube.lst | paste -sd ',' >> rules.json
             echo ']}]}' >> rules.json
           fi
 
-          # Компилируем SRS через Docker
           docker run --rm -v "${GITHUB_WORKSPACE}:/data" ghcr.io/sagernet/sing-box:latest \
             rule-set compile --output /data/russia-inside-noyoutube.srs /data/rules.json
 
-          # Проверяем, создан ли файл
           if [ -f russia-inside-noyoutube.srs ]; then
             echo "✅ SRS файл создан успешно"
             ls -la russia-inside-noyoutube.srs
@@ -97,17 +92,15 @@ jobs:
             echo "❌ Ошибка: SRS файл не был создан"
             exit 1
           fi
-
-          # Удаляем временный JSON
           rm -f rules.json
 
-      # Шаг 3: проверяем, изменился ли .lst или .srs (или .last_checksums)
+      # --- Проверяем, изменились ли файлы (для коммита и уведомления) ---
       - name: Проверка изменений
         id: changes
         run: |
           git diff --quiet russia-inside-noyoutube.lst .last_checksums russia-inside-noyoutube.srs || echo "changed=true" >> $GITHUB_OUTPUT
 
-      # Шаг 4: коммит и пуш, если есть изменения
+      # --- Коммит и пуш (только если что-то изменилось) ---
       - name: Коммит и пуш
         if: steps.changes.outputs.changed == 'true'
         run: |
@@ -117,7 +110,7 @@ jobs:
           git commit -m "Автообновление: изменения в списках и SRS [skip ci]"
           git push
 
-      # Шаг 5: уведомление в Telegram (только при изменениях)
+      # --- Уведомление в Telegram ---
       - name: Уведомление в Telegram
         if: steps.changes.outputs.changed == 'true'
         env:
