@@ -1,4 +1,3 @@
-```markdown
 # 🇷🇺 Russia Inside NoYouTube — Rule Set для Podkop / sing-box
 
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/wineperm/russia-inside-noyoutube/update-filtered-list.yml?label=Auto%20Update&logo=github)](https://github.com/wineperm/russia-inside-noyoutube/actions)
