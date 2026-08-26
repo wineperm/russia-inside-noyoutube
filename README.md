@@ -1,7 +1,3 @@
-Мы обновили README.md, чтобы отразить новую функциональность с пользовательскими списками (`custom_allow.lst` и `custom_deny.lst`). Ниже приведён полный обновлённый файл в том же стиле, что и у вас.
-
----
-
 ```markdown
 # 🇷🇺 Russia Inside NoYouTube — Rule Set для Podkop / sing-box
 
