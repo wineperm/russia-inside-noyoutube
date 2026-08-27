@@ -1,0 +1,98 @@
+name: Update filtered Russia list (no YouTube) + SRS
+
+on:
+  schedule:
+    - cron: '0 3 * * *'          # каждый день в 3:00 UTC
+  push:
+    branches:
+      - main
+    paths:
+      - 'scripts/filter_and_check.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-list:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout репозитория
+        uses: actions/checkout@v6
+
+      # Шаг 1: обновляем текстовый список, если изменились исходники
+      - name: Запуск скрипта фильтрации (обновляет .lst при изменениях)
+        run: |
+          chmod +x scripts/filter_and_check.sh
+          ./scripts/filter_and_check.sh
+
+      # Шаг 2: всегда чистим .lst и компилируем .srs (даже если .lst не изменился)
+      - name: Очистка .lst и компиляция SRS
+        run: |
+          # Если файла .lst нет, выходим с ошибкой
+          if [ ! -f russia-inside-noyoutube.lst ]; then
+            echo "Ошибка: russia-inside-noyoutube.lst не найден"
+            exit 1
+          fi
+
+          # Удаляем BOM, пустые строки, пробелы
+          sed -i '1s/^\xEF\xBB\xBF//' russia-inside-noyoutube.lst 2>/dev/null || true
+          sed -i '/^$/d' russia-inside-noyoutube.lst
+          sed -i 's/^[ \t]*//; s/[ \t]*$//' russia-inside-noyoutube.lst
+
+          # Проверяем, что файл не пуст
+          if [ ! -s russia-inside-noyoutube.lst ]; then
+            echo "Предупреждение: russia-inside-noyoutube.lst пуст после очистки"
+            echo '{"version": 3, "rules": []}' > rules.json
+          else
+            # Формируем корректный JSON для sing-box (версия 3 для совместимости)
+            echo '{"version": 3, "rules": [{"domain_suffix": [' > rules.json
+            sed 's/^/"/; s/$/"/' russia-inside-noyoutube.lst | paste -sd ',' >> rules.json
+            echo ']}]}' >> rules.json
+          fi
+
+          # Компилируем SRS через Docker
+          docker run --rm -v "${GITHUB_WORKSPACE}:/data" ghcr.io/sagernet/sing-box:latest \
+            rule-set compile --output /data/russia-inside-noyoutube.srs /data/rules.json
+
+          # Проверяем, создан ли файл
+          if [ -f russia-inside-noyoutube.srs ]; then
+            echo "✅ SRS файл создан успешно"
+            ls -la russia-inside-noyoutube.srs
+          else
+            echo "❌ Ошибка: SRS файл не был создан"
+            exit 1
+          fi
+
+          # Удаляем временный JSON
+          rm -f rules.json
+
+      # Шаг 3: проверяем, изменился ли .lst или .srs (или .last_checksums)
+      - name: Проверка изменений
+        id: changes
+        run: |
+          git diff --quiet russia-inside-noyoutube.lst .last_checksums russia-inside-noyoutube.srs || echo "changed=true" >> $GITHUB_OUTPUT
+
+      # Шаг 4: коммит и пуш, если есть изменения
+      - name: Коммит и пуш
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add russia-inside-noyoutube.lst russia-inside-noyoutube.srs .last_checksums
+          git commit -m "Автообновление: изменения в списках и SRS [skip ci]"
+          git push
+
+      # Шаг 5: уведомление в Telegram (только при изменениях)
+      - name: Уведомление в Telegram
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          MESSAGE="🔔 *Обновлён список доменов и SRS*%0A%0A📁 \`russia-inside-noyoutube.lst\`%0A📦 \`russia-inside-noyoutube.srs\`%0A🔗 [Смотреть файлы](https://github.com/${{ github.repository }})%0A📦 [Коммит](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
+            -d parse_mode=Markdown \
+            -d text="${MESSAGE}"
