@@ -2,7 +2,7 @@ name: Update filtered Russia list (no YouTube) + SRS
 
 on:
   schedule:
-    - cron: '*/5 * * * *'          # ежедневно в 3:00 UTC
+    - cron: '0 21 * * *'          # ежедневно в 3:00 UTC
   push:
     branches:
       - main
